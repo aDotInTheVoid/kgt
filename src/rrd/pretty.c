@@ -17,6 +17,9 @@
 #include "node.h"
 #include "list.h"
 #include "pretty.h"
+#include "tnode.h"
+
+extern int prettify;
 
 static void
 node_walk(void (*f)(int *, struct node **),
@@ -59,6 +62,11 @@ node_walk(void (*f)(int *, struct node **),
 	}
 }
 
+typedef void (*rrd_pass)(int *, struct node **);
+
+void rr_output_hack(struct node *node, struct dim *dim, int utf8);
+extern struct dim the_dim;
+
 void
 rrd_pretty(struct node **rrd)
 {
@@ -66,13 +74,22 @@ rrd_pretty(struct node **rrd)
 	int limit;
 	size_t i;
 
-	void (*f[])(int *, struct node **) = {
-		rrd_pretty_collapse, rrd_pretty_skippable, rrd_pretty_redundant,
-		rrd_pretty_collapse, rrd_pretty_roll,
-		rrd_pretty_collapse, rrd_pretty_nested, rrd_pretty_ci,
-		rrd_pretty_collapse, rrd_pretty_affixes,
-		rrd_pretty_collapse, rrd_pretty_bottom,
-		rrd_pretty_collapse
+	prettify = 0;
+	
+	struct {rrd_pass func; const char* name;} f[] = {
+		{rrd_pretty_collapse, "collapse"},
+		{rrd_pretty_skippable, "skippable"},
+		{rrd_pretty_redundant, "redundant"},
+		{rrd_pretty_collapse, "collapse"},
+		{rrd_pretty_roll, "roll"},
+		{rrd_pretty_collapse, "collapse"},
+		{rrd_pretty_nested, "nested"},
+		{rrd_pretty_ci, "ci"},
+		{rrd_pretty_collapse, "collapse"},
+		{rrd_pretty_affixes, "affixes"},
+		{rrd_pretty_collapse, "collapse"},
+		{rrd_pretty_bottom, "bottom"},
+		{rrd_pretty_collapse, "collapse"},
 	};
 
 	limit = 20;
@@ -80,7 +97,10 @@ rrd_pretty(struct node **rrd)
 	for (i = 0; i < sizeof f / sizeof *f; i++) {
 		do {
 			changed = 0;
-			node_walk(f[i], &changed, rrd);
+			node_walk(f[i].func, &changed, rrd);
+			printf("Just ran %s\n", f[i].name);;
+			struct dim dim = the_dim;
+			rr_output_hack(*rrd, &dim, 1);
 		} while (changed && !limit--);
 	}
 }

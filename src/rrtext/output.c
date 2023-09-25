@@ -516,6 +516,13 @@ dim_mono_string(const char *s, unsigned *w, unsigned *a, unsigned *d)
 	dim_mono_txt(&t, w, a, d);
 }
 
+void rr_output_hack(struct node *node, struct dim *dim, int utf8)
+{
+	struct tnode *tnode = rrd_to_tnode(node, dim);
+	render_rule(tnode, utf8);
+	printf("\n");
+}
+
 void
 rr_output(const struct ast_rule *grammar, struct dim *dim, int utf8)
 {
@@ -547,6 +554,17 @@ rr_output(const struct ast_rule *grammar, struct dim *dim, int utf8)
 		tnode_free(tnode);
 	}
 }
+
+struct dim the_dim = {
+	dim_mono_txt,
+	dim_mono_string,
+	2,
+	0,
+	2,
+	0,
+	2,
+	1
+};
 
 WARN_UNUSED_RESULT
 int
